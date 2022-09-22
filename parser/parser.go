@@ -2,6 +2,7 @@ package parser
 
 import (
 	"os"
+	"strings"
 
 	"golang.org/x/net/html"
 )
@@ -27,16 +28,25 @@ func ParseFile(r *os.File) LinkList {
 
 		token := z.Token()
 
-		if linkFound {
-			linkItem.Text = token.Data
-			linkList = append(linkList, linkItem)
-
+		if tt == html.EndTagToken && linkFound {
 			linkFound = false
+			linkList = append(linkList, linkItem)
+			linkItem.Text = ""
+		}
+
+		if linkFound && tt == html.TextToken {
+			if linkItem.Text == "" {
+				linkItem.Text = strings.TrimSpace(token.Data)
+			} else {
+				linkItem.Text = linkItem.Text + " " + strings.TrimSpace(token.Data)
+			}
 		}
 
 		if token.Data == "a" && tt == html.StartTagToken {
 			for _, v := range token.Attr {
-				linkItem.Href = v.Val
+				if v.Key == "href" {
+					linkItem.Href = v.Val
+				}
 			}
 			linkFound = true
 		}
